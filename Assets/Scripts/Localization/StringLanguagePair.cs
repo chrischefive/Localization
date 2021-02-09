@@ -1,23 +1,30 @@
 using System;
 using Sirenix.OdinInspector;
-using UnityEngine;
 
 namespace Chrische.Localization
 {
     [Serializable]
     public class StringLanguagePair
     {
-        public StringLanguagePair(SystemLanguage language)
-        {
-            _language = language;
-        }
+        private int _languagueIndex;
         
-        [ShowInInspector] 
-        [ReadOnly]
-        private readonly SystemLanguage _language = default;
-        
-        [ShowInInspector] 
         private string _text = String.Empty;
+        
+        public StringLanguagePair(int index)
+        {
+            _languagueIndex = index;
+        }
+
+        #region Properties
+        public int LanguagueIndex => _languagueIndex;
+
+        public string Text
+        {
+            get => _text;
+            set => _text = value;
+        }
+
+        #endregion
     }
 
 }

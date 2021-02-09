@@ -37,7 +37,7 @@ namespace Chrische
             private void AddEntry()
             {
                 var entry = new TextEntry();
-                entry.AddStringLanguagePair(_choosenLanguages);
+                //entry.AddStringLanguagePair(_choosenLanguages);
                 _allEntries.Add(entry);
             }
         }
