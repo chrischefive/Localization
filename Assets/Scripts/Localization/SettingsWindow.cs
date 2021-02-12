@@ -14,12 +14,18 @@ namespace Chrische.Localization
         private bool _areTextsValid = true;
         private TextDataBase _source = default;
         private bool _isLanguageGroupShown = true;
-        
-        
+        private readonly List<bool> _textFoldout = new List<bool>();
+
+
         [MenuItem("Window/Localization/Settings")]
         public static void ShowWindow()
         {
-            EnumGenerator.Generate(null);
+            var path = Path.GetFullPath("BaseTextSetter.cs");
+            Debug.Log("#SettingsWindow#: " + path);
+            path = Path.GetDirectoryName("#SettingsWindow#: " + path);
+            Debug.Log(path);
+            
+            EnumGenerator.Generate(new List<string>(){"Mock"});
             GetWindow<SettingsWindow>("Settings");
         }
         private void OnGUI()
@@ -36,6 +42,14 @@ namespace Chrische.Localization
                     AssetDatabase.SaveAssets();
                     Repaint();
                 }
+
+                if (_source)
+                {
+                    foreach (var unused in _source.Entries)
+                    {
+                        _textFoldout.Add(true);
+                    }
+                }
             }
             EditorGUILayout.EndHorizontal();
 
@@ -45,8 +59,19 @@ namespace Chrische.Localization
             {
                 ShowContent();
             }
-        }
+            if (GUILayout.Button("Load from csv"))
+            {
+                LoadFromCsv();
+            }
 
+            if (GUILayout.Button("Clear all"))
+            {
+                _textFoldout.Clear();
+                _source = null;
+                Repaint();
+            }
+        }
+        
         private void ShowContent()
         {
             _isLanguageGroupShown = EditorGUILayout.BeginFoldoutHeaderGroup(_isLanguageGroupShown, "Language");
@@ -65,13 +90,37 @@ namespace Chrische.Localization
             EditorGUILayout.Space();
 
             ShowButtonSection();
+            
         }
 
         private void ShowButtonSection()
         {
             if (GUILayout.Button("Validate IDs"))
             {
-                ValidateIds();
+                ValidateIdFailure failure = ValidateIds();
+                switch (failure)
+                {
+                    case ValidateIdFailure.OKAY:
+                    {
+                        EditorUtility.DisplayDialog("Validate IDs", "Everything allright", "Okay");
+                        break;
+                    }
+                    case ValidateIdFailure.EMPTY_ID:
+                    {
+                        EditorUtility.DisplayDialog("Validate IDs", "At least one ID is empty", "Okay");
+                        break;
+                    }
+                    case ValidateIdFailure.DUPLICATE_ID:
+                    {
+                        EditorUtility.DisplayDialog("Validate IDs", "at least two ids are same", "Okay");
+                        break;
+                    }
+                    case ValidateIdFailure.ID_WITH_SPACE:
+                    {
+                        EditorUtility.DisplayDialog("Validate IDs", "At least one id has a space", "Okay");
+                        break;
+                    }
+                }
             }
             if (GUILayout.Button("Validate Texts"))
             {
@@ -85,20 +134,16 @@ namespace Chrische.Localization
 
             if (GUILayout.Button("Save"))
             {
-                EnumGenerator.Generate(_source);
-                
+                EnumGenerator.Generate(_source.AllValues);
+                for (var i = 0; i < _source.Entries.Count; ++i)
+                {
+                    _source.Entries[i].ID = (TextId) i;
+                }
             }
-            
 
             if (GUILayout.Button("Save to csv"))
             {
                 SaveToCsv();
-            }
-
-            if (GUILayout.Button("Clear all"))
-            {
-                _source = null;
-                Repaint();
             }
         }
 
@@ -110,40 +155,45 @@ namespace Chrische.Localization
                 {
                     var newEntry = new TextEntry();
                     newEntry.AddStringLanguagePair(_source.SelectedLanguages);
+                    newEntry.ShadowId = String.Empty;
                     _source.Entries.Add(newEntry);
+                    _textFoldout.Add(true);
                 }
             }
             _scrollPos = EditorGUILayout.BeginScrollView(_scrollPos);
             {
-                foreach (var entry in _source.Entries)
+                for(var i = 0; i < _source.Entries.Count; ++i)
                 {
-                    bool test = true;
-                    test = EditorGUILayout.BeginFoldoutHeaderGroup(test, entry.ShadowId);
+                    _textFoldout[i] = EditorGUILayout.BeginFoldoutHeaderGroup(_textFoldout[i], _source.Entries[i].ShadowId);
                     {
-                        var rect = EditorGUILayout.GetControlRect(GUILayout.Height(5));
-                        rect.y += (int) (5 / 2f);
-                        rect.x -= 2;
-                        rect.height = entry.AllTexts.Count * 20 + 28;
-                        EditorGUI.DrawRect(rect, Color.grey);
-                        EditorGUILayout.BeginHorizontal();
+                        if (_textFoldout[i])
                         {
-                            GUILayout.Label("ID:");
-                            entry.ShadowId = EditorGUILayout.TextField(entry.ShadowId, GUILayout.Width(250));
-                            if (GUILayout.Button("Delete ID", GUILayout.Width(80)))
-                            {
-                                _source.Entries.Remove(entry);
-                                break;
-                            }
-                        }
-                        EditorGUILayout.EndHorizontal();
-                        foreach (var text in entry.AllTexts)
-                        {
+                            var rect = EditorGUILayout.GetControlRect(GUILayout.Height(5));
+                            rect.y += (int) (5 / 2f);
+                            rect.x -= 2;
+                            rect.height = _source.Entries[i].AllTexts.Count * 20 + 28;
+                            EditorGUI.DrawRect(rect, Color.grey);
                             EditorGUILayout.BeginHorizontal();
                             {
-                                GUILayout.Label((SystemLanguage) text.LanguagueIndex + ":");
-                                text.Text = EditorGUILayout.TextField(text.Text, GUILayout.Width(332));
+                                GUILayout.Label("ID:");
+                                _source.Entries[i].ShadowId = EditorGUILayout.TextField(_source.Entries[i].ShadowId, GUILayout.Width(250));
+                                if (GUILayout.Button("Delete ID", GUILayout.Width(80)))
+                                {
+                                    _source.Entries.Remove(_source.Entries[i]);
+                                    _textFoldout.RemoveAt(i);
+                                    break;
+                                }
                             }
                             EditorGUILayout.EndHorizontal();
+                            foreach (var text in _source.Entries[i].AllTexts)
+                            {
+                                EditorGUILayout.BeginHorizontal();
+                                {
+                                    GUILayout.Label((SystemLanguage) text.LanguagueIndex + ":");
+                                    text.Text = EditorGUILayout.TextField(text.Text, GUILayout.Width(332));
+                                }
+                                EditorGUILayout.EndHorizontal();
+                            }
                         }
                     }
                     EditorGUILayout.EndFoldoutHeaderGroup();
@@ -167,13 +217,21 @@ namespace Chrische.Localization
                 if (!_source.SelectedLanguages.Contains(_selectedLanguageIndex))
                 {
                     _source.SelectedLanguages.Add(_selectedLanguageIndex);
-                    _source.DefaultLanguageId = _selectedLanguageIndex;
+                    _source.CurrentLanguageId = _selectedLanguageIndex;
                     AddTextEntriesWhenAddingALanguage(_selectedLanguageIndex);
                     Repaint();
                 }
             }
-           
-            GUILayout.Label("Default Language: " + (SystemLanguage)_source.DefaultLanguageId);
+
+            if (_source.CurrentLanguageId > -1)
+            {
+                GUILayout.Label("Current Language: " + (SystemLanguage)_source.CurrentLanguageId);
+            }
+            else
+            {
+                GUILayout.Label("Current Language: nothing");
+            }
+            
 
             for (var i = 0; i < _source.SelectedLanguages.Count; ++i)
             {
@@ -186,17 +244,20 @@ namespace Chrische.Localization
                 {
                     GUILayout.Label(Enum.GetName(typeof(SystemLanguage), _source.SelectedLanguages[i]),GUILayout.Height(30));
 
-                    if (GUILayout.Button("Remove Language", GUILayout.Height(20), GUILayout.Width(120)))
+                    if (GUILayout.Button("remove language", GUILayout.Height(20), GUILayout.Width(120)))
                     {
                         CheckTextEntriesWhenDeleteLanguage(_source.SelectedLanguages[i]);
                         _source.SelectedLanguages.Remove(_source.SelectedLanguages[i]);
-                        _source.DefaultLanguageId = _source.SelectedLanguages[_source.SelectedLanguages.Count - 1];
+                        if (_source.SelectedLanguages.Count != 0)
+                        {
+                            _source.CurrentLanguageId = _source.SelectedLanguages[_source.SelectedLanguages.Count - 1];
+                        }
                         Repaint();
                     }
 
-                    if (GUILayout.Button("make default", GUILayout.Height(20), GUILayout.Width(120)))
+                    if (GUILayout.Button("make current", GUILayout.Height(20), GUILayout.Width(120)))
                     {
-                        _source.DefaultLanguageId = _source.SelectedLanguages[i];
+                        _source.CurrentLanguageId = _source.SelectedLanguages[i];
                         Repaint();
                     }
                 }
@@ -205,31 +266,28 @@ namespace Chrische.Localization
             }
         }
 
-        private void ValidateIds()
+        private ValidateIdFailure ValidateIds()
         {
-            bool areIdsValid = true;
             var allIds = new List<string>();
             foreach (var entry in _source.Entries)
             {
                 allIds.Add(entry.ShadowId);
                 if (entry.ShadowId == String.Empty)
                 {
-                    areIdsValid = false;
+                    return ValidateIdFailure.EMPTY_ID;
+                }
+
+                if (entry.ShadowId.Contains(' '))
+                {
+                    return ValidateIdFailure.ID_WITH_SPACE;
                 }
             }
-            if (areIdsValid)
+            if (allIds.Count != allIds.Distinct().Count())
             {
-                areIdsValid = allIds.Count == allIds.Distinct().Count();
+                return ValidateIdFailure.DUPLICATE_ID;
             }
 
-            if (!areIdsValid)
-            {
-                EditorUtility.DisplayDialog("Validate IDs", "Error in ids", "Okay");
-            }
-            else
-            {
-                EditorUtility.DisplayDialog("Validate IDs", "everything allright", "Okay");
-            }
+            return ValidateIdFailure.OKAY;
         }
 
         private void ValidateTexts()
@@ -251,28 +309,90 @@ namespace Chrische.Localization
         
         private void SaveToCsv()
         {
-            string path = Application.dataPath + "/textDatabase.csv";
-            using StreamWriter sw = File.CreateText(path);
-            var indexString = string.Empty;
-            for (var i = 0; i < _source.SelectedLanguages.Count; ++i)
+            var path = EditorUtility.SaveFilePanel(
+                "Save dataBase as csv",
+                Application.dataPath,
+                "textDatabase.csv",
+                "csv");
+            if (path.Length != 0)
             {
-                indexString += _source.SelectedLanguages[i].ToString();
-                if (i != _source.SelectedLanguages.Count - 1)
+                using StreamWriter sw = File.CreateText(path);
+                var indexString = string.Empty;
+                for (var i = 0; i < _source.SelectedLanguages.Count; ++i)
                 {
-                    indexString += ";";
+                    indexString += _source.SelectedLanguages[i].ToString();
+                    if (i != _source.SelectedLanguages.Count - 1)
+                    {
+                        indexString += ";";
+                    }
+                }
+                sw.WriteLine(indexString);
+                var defaultLanguageIndexString = _source.CurrentLanguageId.ToString();
+                sw.WriteLine(defaultLanguageIndexString);
+                foreach (var entry in _source.Entries)
+                {
+                    var textString = String.Empty;
+                    textString += entry.ShadowId + ";";
+                    foreach (var text in entry.AllTexts)
+                    {
+                        textString += text.Text + ";";
+                    }
+                    sw.WriteLine(textString);
                 }
             }
-            sw.WriteLine(indexString);
-            foreach (var entry in _source.Entries)
+        }
+
+        private void LoadFromCsv()
+        {
+            var path = EditorUtility.OpenFilePanel("Load dataBase from csv", Application.dataPath, "csv");
+            if (path != String.Empty)
             {
-                var textString = String.Empty;
-                textString += entry.ShadowId + ";";
-                foreach (var text in entry.AllTexts)
+                
+                var dataBase = CreateInstance<TextDataBase>();
+                AssetDatabase.CreateAsset(dataBase, "Assets/textDataBase.asset");
+                var readSource = dataBase;
+                AssetDatabase.SaveAssets();
+                _textFoldout.Clear();
+                using StreamReader sr = new StreamReader(path);
+                var line = sr.ReadLine();
+                if (line != null)
                 {
-                    textString += text.Text + ";";
+                    var languageIndices = line.Split(';');
+                    foreach (var index in languageIndices)
+                    {
+                        readSource.SelectedLanguages.Add(Int32.Parse(index));
+                    }
                 }
-                sw.WriteLine(textString);
+
+                line = sr.ReadLine();
+                readSource.CurrentLanguageId = Int32.Parse(line);
+
+                line = sr.ReadLine();
+                while (line != null)
+                {
+                    var all = line.Split(';');
+                    var entry = new TextEntry {ShadowId = all[0]};
+                    for(var i = 0; i < readSource.SelectedLanguages.Count; ++i)
+                    {
+                        entry.AllTexts.Add(new StringLanguagePair(readSource.SelectedLanguages[i], all[i+1]));
+                    }
+                    readSource.Entries.Add(entry);
+                    _textFoldout.Add(true);
+                    line = sr.ReadLine();
+                }
+
+                _source = readSource;
+                var allIds = readSource.Entries.Select(entry => entry.ShadowId).ToList();
+
+                AssetDatabase.SaveAssets();
+                EnumGenerator.Generate(allIds);
+                for (var i = 0; i < _source.Entries.Count; ++i)
+                {
+                    _source.Entries[i].ID = (TextId) i;
+                }
+                Repaint();
             }
+            
         }
         
         private void CheckTextEntriesWhenDeleteLanguage(int languageToDeleteIndex)

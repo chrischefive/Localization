@@ -7,7 +7,7 @@ namespace Chrische.Localization
 {
     public static class EnumGenerator
     {
-        public static bool Generate(TextDataBase dataBase)
+        public static bool Generate(List<string> allValue)
         {
             string path = Application.dataPath + "/TextId.cs";
             using (StreamWriter sw = File.CreateText(path))
@@ -16,11 +16,11 @@ namespace Chrische.Localization
                 content += "namespace Chrische.Localization\n";
                 content += "{\n";
                 content += "\tpublic enum TextId\n\t{\n";
-                if (dataBase != null)
+                if (allValue.Count != 0)
                 {
-                    foreach (var entry in dataBase.Entries)
+                    foreach (var value in allValue)
                     {
-                        content += "\t\t" + entry.ShadowId + ",\n";
+                        content += "\t\t" + value + ",\n";
                     }
                 }
                 

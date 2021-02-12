@@ -1,5 +1,4 @@
 using System;
-using Sirenix.OdinInspector;
 
 namespace Chrische.Localization
 {
@@ -13,6 +12,12 @@ namespace Chrische.Localization
         public StringLanguagePair(int index)
         {
             _languagueIndex = index;
+        }
+        
+        public StringLanguagePair(int index, string text)
+        {
+            _languagueIndex = index;
+            _text = text;
         }
 
         #region Properties

@@ -8,7 +8,7 @@ public class TextDataBase : ScriptableObject
 {
     private List<int> _selectedLanguages = new List<int>();
     private List<TextEntry> _entries = new List<TextEntry>();
-    private int _defaultLanguageId = -1;
+    private int _currentLanguageId = -1;
 
     public string GetText(TextId id)
     {
@@ -18,7 +18,7 @@ public class TextDataBase : ScriptableObject
             {
                 foreach (var t in entry.AllTexts)
                 {
-                    if (t.LanguagueIndex == _defaultLanguageId)
+                    if (t.LanguagueIndex == _currentLanguageId)
                     {
                         return t.Text;
                     }
@@ -29,6 +29,20 @@ public class TextDataBase : ScriptableObject
     }
 
     #region Properties
+
+    public List<string> AllValues
+    {
+        get
+        {
+            var values = new List<string>();
+            foreach (var entry in _entries)
+            {
+                values.Add(entry.ShadowId);
+            }
+
+            return values;
+        }
+    }
 
     public List<int> SelectedLanguages
     {
@@ -42,10 +56,10 @@ public class TextDataBase : ScriptableObject
         set => _entries = value;
     }
 
-    public int DefaultLanguageId
+    public int CurrentLanguageId
     {
-        get => _defaultLanguageId;
-        set => _defaultLanguageId = value;
+        get => _currentLanguageId;
+        set => _currentLanguageId = value;
     }
 
     #endregion

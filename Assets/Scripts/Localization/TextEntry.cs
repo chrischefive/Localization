@@ -15,7 +15,7 @@ namespace Chrische.Localization
         {
             foreach (var index in allLanguageIndices)
             {
-                _allTexts.Add(new StringLanguagePair(index));
+                _allTexts.Add(new StringLanguagePair(index, String.Empty));
             }
         }
 

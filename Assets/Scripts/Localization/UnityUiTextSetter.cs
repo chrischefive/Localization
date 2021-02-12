@@ -1,38 +1,32 @@
-using Sirenix.OdinInspector;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace Chrische.Localization
 {
-    public class UnityUiTextSetter : MonoBehaviour
+    public class UnityUiTextSetter : BaseTextSetter
     {
-        [ShowInInspector] 
-        [SerializeField] 
-        private TextDataBase _textDataBase = default;
-
-        [ShowInInspector] 
-        [SerializeField] 
-        private TextId _id;
-
         private Text _textField = default;
 
-        private void Awake()
+        protected override void Awake()
         {
+            base.Awake();
+            
             _textField = GetComponent<Text>();
             if (!_textField)
             {
                 Debug.Log("#UnityUiTextSetter#: cant find textfield");
             }
+        }
 
-            if (!_textDataBase)
-            {
-                Debug.Log("#UnityUiTextSetter#: no textDatabase attached");
-            }
+        public override void UpdateText()
+        {
+            var text = _textDataBase.GetText(_id);
+            _textField.text = text;
         }
 
         private void OnEnable()
         {
-            _textField.text = _textDataBase.GetText(_id);
+            UpdateText();
         }
     }
 }
